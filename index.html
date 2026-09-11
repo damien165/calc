@@ -96,6 +96,11 @@
   .field{display:flex;flex-direction:column;gap:5px;min-width:0;}
   .field.wide{grid-column:1/-1;}
   label{font-size:11.5px;color:var(--muted);letter-spacing:.04em;}
+  .opt{color:var(--faint);letter-spacing:0;}
+  .egrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .egrid input{text-align:center;}
+  .caption{font-size:11.5px;color:var(--muted);min-height:17px;margin-top:2px;}
+  .caption b{color:var(--ink-dim);font-weight:600;font-variant-numeric:tabular-nums;}
   .box{
     display:flex;align-items:center;gap:8px;
     background:var(--sunken);border:1px solid var(--line);border-radius:5px;
@@ -204,16 +209,22 @@
       </div>
 
       <div class="grid">
-        <div class="field">
+        <div class="field wide">
           <label for="risk">Risque</label>
           <div class="box">
             <input id="risk" inputmode="decimal" value="100" autocomplete="off">
             <input id="ccy" value="USDT" maxlength="5" aria-label="Devise">
           </div>
         </div>
-        <div class="field">
-          <label for="entry">Entrée</label>
-          <div class="box"><input id="entry" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+
+        <div class="field wide">
+          <label>Entrées <span class="opt">2 et 3 facultatives</span></label>
+          <div class="egrid">
+            <div class="box"><input id="e1" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Entrée 1"></div>
+            <div class="box"><input id="e2" inputmode="decimal" placeholder="—" autocomplete="off" aria-label="Entrée 2"></div>
+            <div class="box"><input id="e3" inputmode="decimal" placeholder="—" autocomplete="off" aria-label="Entrée 3"></div>
+          </div>
+          <div class="caption" id="avgLine"></div>
         </div>
         <div class="field">
           <label for="sl">Stop loss</label>
@@ -266,6 +277,7 @@
     </div>
     <div class="card-body" aria-live="polite">
       <p class="notional"><span id="notional">—</span><em id="notionalCcy"></em></p>
+      <div class="caption" id="perLeg"></div>
       <div class="cols">
         <div class="col"><span>RISQUE MAX</span><b id="realRisk">—</b></div>
         <div class="col"><span>DIST. SL</span><b id="slDist">—</b></div>
@@ -303,7 +315,7 @@
   var tpMode = "fill";
 
   var $ = function(id){ return document.getElementById(id); };
-  var inputs = ["risk","entry","sl","tp","gap","fee","tick","step"].map($);
+  var inputs = ["risk","e1","e2","e3","sl","tp","gap","fee","tick","step"].map($);
 
   function num(el){
     var v = parseFloat(String(el.value).replace(/\s/g,"").replace(",","."));
@@ -354,16 +366,28 @@
       $(id).textContent = "—";
     });
     $("notionalCcy").textContent = "";
+    $("perLeg").textContent = "";
     $("tpNote").textContent = "";
   }
 
   function compute(){
-    var riskAmount=num(inputs[0]), entry=num(inputs[1]), sl=num(inputs[2]), tp=num(inputs[3]),
-        gap=num(inputs[4]), fee=num(inputs[5]), tick=num(inputs[6]), step=num(inputs[7]);
+    var riskAmount=num(inputs[0]),
+        sl=num(inputs[4]), tp=num(inputs[5]),
+        gap=num(inputs[6]), fee=num(inputs[7]), tick=num(inputs[8]), step=num(inputs[9]);
+
+    // Entrees de taille identique : le prix retenu est leur moyenne arithmetique.
+    var fills = [num(inputs[1]), num(inputs[2]), num(inputs[3])].filter(function(v){ return v>0; });
+    var nFills = fills.length;
+    var entry = nFills ? fills.reduce(function(a,b){ return a+b; },0)/nFills : NaN;
 
     var msg = $("msg");
-    var slBox = inputs[2].parentNode, tpBox = inputs[3].parentNode;
+    var slBox = inputs[4].parentNode, tpBox = inputs[5].parentNode;
     slBox.classList.remove("bad"); tpBox.classList.remove("bad");
+
+    var dpA = decimals(num(inputs[8]));
+    $("avgLine").innerHTML = nFills>1
+      ? "Prix moyen sur " + nFills + " entrées <b>" + fmt(entry, dpA) + "</b>"
+      : "";
 
     if(!(riskAmount>0) || !(entry>0) || !(sl>0)){
       msg.textContent = "";
@@ -400,6 +424,9 @@
     var dp = decimals(tick);
     $("notional").textContent = fmt(size*entry, 2);
     $("notionalCcy").textContent = ccy();
+    $("perLeg").innerHTML = nFills>1
+      ? nFills + " ordres de <b>" + fmt(size*entry/nFills, 2) + " " + ccy() + "</b>"
+      : "";
     $("realRisk").textContent = money(size*lossPerUnit);
     $("slDist").textContent = trimPct(slDist/entry*100) + " %";
 
@@ -413,6 +440,13 @@
         : "Pour un short, le take profit doit être sous le prix d'entrée.";
     } else {
       msg.textContent = "";
+    }
+
+    // une entree du mauvais cote du stop fausse le trade meme si la moyenne passe
+    if(!msg.textContent && fills.some(function(f){ return (f - sl)*dir <= 0; })){
+      msg.textContent = dir===1
+        ? "Une des entrées est sous le stop."
+        : "Une des entrées est au-dessus du stop.";
     }
 
     if(tpOk){

@@ -267,7 +267,7 @@
     <div class="card-body" aria-live="polite">
       <p class="notional"><span id="notional">—</span><em id="notionalCcy"></em></p>
       <div class="cols">
-        <div class="col"><span>RISQUE RÉEL</span><b id="realRisk">—</b></div>
+        <div class="col"><span>RISQUE MAX</span><b id="realRisk">—</b></div>
         <div class="col"><span>DIST. SL</span><b id="slDist">—</b></div>
         <div class="col"><span>R:R</span><b id="rr" class="accent">—</b></div>
       </div>
@@ -383,7 +383,13 @@
     if(!(fee>=0)) fee = 0;
 
     var feeRate = fee/100;
-    var lossPerUnit = slDist + (entry + sl) * feeRate;
+    var k = gap/100;
+
+    // Le stop est un ordre a declenchement : le pire prix de sortie est la limite,
+    // pas le declenchement. La taille est calculee sur ce pire prix.
+    var slLimPrice = roundTo(dir===1 ? sl*(1-k) : sl*(1+k), tick, dir===1 ? "down" : "up");
+    var worstDist = (entry - slLimPrice) * dir;
+    var lossPerUnit = worstDist + (entry + slLimPrice) * feeRate;
     var size = roundTo(riskAmount / lossPerUnit, step, "down");
 
     if(!(size > 0)){
@@ -398,7 +404,8 @@
     $("slDist").textContent = trimPct(slDist/entry*100) + " %";
 
     var tpOk = isFinite(tp) && tp>0 && (tp-entry)*dir > 0;
-    $("rr").textContent = tpOk ? fmt((tp-entry)*dir/slDist, 2) : "—";
+    var netGain = tpOk ? (tp-entry)*dir - (entry+tp)*feeRate : NaN;
+    $("rr").textContent = tpOk ? fmt(netGain/lossPerUnit, 2) : "—";
     if(isFinite(tp) && tp>0 && !tpOk){
       tpBox.classList.add("bad");
       msg.textContent = dir===1
@@ -408,7 +415,6 @@
       msg.textContent = "";
     }
 
-    var k = gap/100;
     if(tpOk){
       var trig, lim;
       if(tpMode === "fill"){
@@ -427,7 +433,7 @@
     }
 
     $("slTrig").textContent = fmt(roundTo(sl, tick, "near"), dp);
-    $("slLim").textContent  = fmt(roundTo(dir===1 ? sl*(1-k) : sl*(1+k), tick, dir===1?"down":"up"), dp);
+    $("slLim").textContent  = fmt(slLimPrice, dp);
   }
 
   document.querySelectorAll(".copy").forEach(function(btn){

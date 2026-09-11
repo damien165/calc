@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E131B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Position">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Taille de position</title>
+<style>
+  :root{
+    --bg:#0E131B;
+    --card:#161C27;
+    --head:#1A212D;
+    --sunken:#11161F;
+    --line:#262E3B;
+    --line-soft:#1F2632;
+    --ink:#D8DDE5;
+    --ink-dim:#AEB6C2;
+    --muted:#7C8695;
+    --faint:#525C6B;
+    --amber:#D9A441;
+    --green:#34C57E;
+    --red:#E5484D;
+    --accent:var(--green);
+  }
+  html[data-dir="short"]{ --accent:var(--red); }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);}
+  body{
+    color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-size:15px;line-height:1.45;
+    -webkit-text-size-adjust:100%;
+    padding-bottom:max(32px,env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:0 14px;}
+
+  .pill,.col span,.orow.thead,label,summary,.card-head{
+    -webkit-user-select:none;user-select:none;
+  }
+  .topbar{
+    border-bottom:1px solid var(--line-soft);
+    padding:max(16px,env(safe-area-inset-top)) 0 14px;
+    margin-bottom:18px;
+  }
+  .topbar h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line-soft);
+    border-radius:8px;
+    margin-bottom:12px;
+    overflow:hidden;
+  }
+  .card-head{
+    background:var(--head);
+    border-bottom:1px solid var(--line-soft);
+    padding:11px 14px;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    font-size:13px;font-weight:600;
+  }
+  .card-head .sub{font-weight:400;color:var(--muted);font-size:12.5px;}
+  .card-body{padding:14px;}
+
+  /* pills */
+  .pill{
+    display:inline-flex;align-items:center;
+    border:1px solid var(--line);border-radius:4px;
+    padding:2px 7px;font-size:11px;font-weight:600;
+    color:var(--faint);background:transparent;letter-spacing:.03em;
+  }
+  .pill.on-green{color:var(--green);border-color:rgba(52,197,126,.45);background:rgba(52,197,126,.09);}
+  .pill.on-red{color:var(--red);border-color:rgba(229,72,77,.45);background:rgba(229,72,77,.09);}
+  .pill.on-amber{color:var(--amber);border-color:rgba(217,164,65,.45);background:rgba(217,164,65,.09);}
+
+  /* direction */
+  .dir{display:flex;gap:8px;margin-bottom:16px;}
+  .dir button{
+    appearance:none;font:inherit;font-size:12.5px;font-weight:600;letter-spacing:.03em;
+    background:transparent;border:1px solid var(--line);border-radius:5px;
+    color:var(--faint);padding:12px 22px;cursor:pointer;min-height:44px;
+    transition:color .12s,border-color .12s,background .12s;
+  }
+  #bLong[aria-pressed="true"]{color:var(--green);border-color:rgba(52,197,126,.45);background:rgba(52,197,126,.09);}
+  #bShort[aria-pressed="true"]{color:var(--red);border-color:rgba(229,72,77,.45);background:rgba(229,72,77,.09);}
+  .dir button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+
+  /* inputs */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .field{display:flex;flex-direction:column;gap:5px;min-width:0;}
+  .field.wide{grid-column:1/-1;}
+  label{font-size:11.5px;color:var(--muted);letter-spacing:.04em;}
+  .box{
+    display:flex;align-items:center;gap:8px;
+    background:var(--sunken);border:1px solid var(--line);border-radius:5px;
+    padding:0 10px;transition:border-color .12s;
+  }
+  .box:focus-within{border-color:var(--amber);}
+  .box.bad{border-color:var(--red);}
+  input{
+    appearance:none;border:0;background:transparent;color:var(--ink);
+    font:inherit;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;
+    padding:11px 0;width:100%;min-width:0;
+  }
+  input:focus{outline:none;}
+  input::placeholder{color:var(--faint);font-weight:500;}
+  input#ccy{text-align:right;text-transform:uppercase;color:var(--ink-dim);font-weight:500;font-size:16px;max-width:76px;}
+  .unit{font-size:12px;color:var(--muted);flex:none;}
+
+  /* settings */
+  details{border-top:1px solid var(--line-soft);margin-top:14px;}
+  summary{
+    font-size:12px;color:var(--muted);cursor:pointer;padding:14px 0 10px;min-height:44px;
+    list-style:none;display:flex;align-items:center;gap:7px;
+  }
+  summary::-webkit-details-marker{display:none;}
+  summary::before{
+    content:"";width:5px;height:5px;flex:none;
+    border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+    transform:rotate(-45deg);transition:transform .12s;
+  }
+  details[open] summary::before{transform:rotate(45deg);}
+  .adv{padding:12px 0 2px;}
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+  .modes button{
+    appearance:none;font:inherit;font-size:12px;text-align:left;cursor:pointer;
+    background:var(--sunken);border:1px solid var(--line);border-radius:5px;
+    color:var(--muted);padding:11px 12px;line-height:1.35;
+  }
+  .modes button[aria-pressed="true"]{border-color:rgba(217,164,65,.45);background:rgba(217,164,65,.07);color:var(--ink-dim);}
+  .modes b{display:block;font-size:12px;font-weight:600;color:var(--amber);margin-bottom:2px;}
+  .modes button[aria-pressed="false"] b{color:var(--ink-dim);}
+
+  /* readout */
+  .notional{
+    font-size:clamp(30px,9vw,40px);font-weight:600;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums;line-height:1.05;margin:0;color:var(--ink);
+  }
+  .notional em{font-style:normal;font-size:.5em;font-weight:500;color:var(--muted);margin-left:8px;letter-spacing:0;}
+  .cols{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+    margin-top:16px;padding-top:13px;border-top:1px solid var(--line-soft);
+  }
+  .col span{display:block;font-size:10.5px;letter-spacing:.06em;color:var(--muted);margin-bottom:4px;}
+  .col b{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink-dim);}
+  .col b.accent{color:var(--accent);}
+
+  /* orders */
+  .otable{width:100%;}
+  .orow{
+    display:grid;grid-template-columns:56px 1fr 1fr;align-items:center;gap:10px;
+    padding:6px 14px;min-height:52px;
+  }
+  .orow.thead{
+    min-height:0;padding-top:9px;padding-bottom:9px;
+    font-size:10.5px;letter-spacing:.06em;color:var(--muted);
+    border-bottom:1px solid var(--line-soft);
+  }
+  .orow+.orow{border-top:1px solid var(--line-soft);}
+  .orow.thead+.orow{border-top:0;}
+  .copy{
+    appearance:none;border:0;background:transparent;text-align:left;
+    font:inherit;font-weight:600;font-size:15px;font-variant-numeric:tabular-nums;
+    color:var(--ink);padding:11px 8px;margin:0 -8px;border-radius:5px;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    transition:background .12s,color .12s;
+  }
+  .copy:hover{background:var(--head);}
+  .copy:focus-visible{outline:2px solid var(--amber);outline-offset:0;}
+  .copy.done{color:var(--amber);}
+  .copy.dim{color:var(--ink-dim);font-weight:500;}
+
+  .msg{
+    margin:0 0 12px;padding:10px 13px;border-radius:6px;
+    border:1px solid rgba(217,164,65,.35);background:rgba(217,164,65,.07);
+    color:var(--amber);font-size:13px;
+  }
+  .msg:empty{display:none;}
+  .foot{font-size:11.5px;color:var(--faint);line-height:1.55;margin:4px 2px 0;}
+  @media (max-width:380px){
+    .cols{grid-template-columns:repeat(2,1fr);row-gap:14px;}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar"><h1>Taille de position</h1></div>
+
+  <section class="card">
+    <div class="card-head">Paramètres du trade</div>
+    <div class="card-body">
+
+      <div class="dir" role="group" aria-label="Sens de la position">
+        <button id="bLong" aria-pressed="true">LONG</button>
+        <button id="bShort" aria-pressed="false">SHORT</button>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="risk">Risque</label>
+          <div class="box">
+            <input id="risk" inputmode="decimal" value="100" autocomplete="off">
+            <input id="ccy" value="USDT" maxlength="5" aria-label="Devise">
+          </div>
+        </div>
+        <div class="field">
+          <label for="entry">Entrée</label>
+          <div class="box"><input id="entry" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+        </div>
+        <div class="field">
+          <label for="sl">Stop loss</label>
+          <div class="box"><input id="sl" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+        </div>
+        <div class="field">
+          <label for="tp">Take profit</label>
+          <div class="box"><input id="tp" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+        </div>
+      </div>
+
+      <details>
+        <summary>Réglages</summary>
+        <div class="adv">
+          <div class="grid">
+            <div class="field">
+              <label for="gap">Écart de déclenchement</label>
+              <div class="box"><input id="gap" inputmode="decimal" value="0.5"><span class="unit">%</span></div>
+            </div>
+            <div class="field">
+              <label for="fee">Frais par sens</label>
+              <div class="box"><input id="fee" inputmode="decimal" value="0"><span class="unit">%</span></div>
+            </div>
+            <div class="field">
+              <label for="tick">Pas de prix</label>
+              <div class="box"><input id="tick" inputmode="decimal" value="0.01"></div>
+            </div>
+            <div class="field">
+              <label for="step">Pas de quantité</label>
+              <div class="box"><input id="step" inputmode="decimal" value="0.01"></div>
+            </div>
+          </div>
+          <div class="modes" role="group" aria-label="Placement de l'ordre take profit">
+            <button id="mFill" aria-pressed="true"><b>Exécution sûre</b>Limite posée au-delà du TP</button>
+            <button id="mMaker" aria-pressed="false"><b>Frais maker</b>Déclenchement avant le TP</button>
+          </div>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+  <div class="msg" id="msg"></div>
+
+  <section class="card">
+    <div class="card-head">
+      Valeur de l'ordre
+      <span class="pill" id="dirPill">LONG</span>
+      <span class="sub" id="levNote"></span>
+    </div>
+    <div class="card-body" aria-live="polite">
+      <p class="notional"><span id="notional">—</span><em id="notionalCcy"></em></p>
+      <div class="cols">
+        <div class="col"><span>RISQUE RÉEL</span><b id="realRisk">—</b></div>
+        <div class="col"><span>DIST. SL</span><b id="slDist">—</b></div>
+        <div class="col"><span>R:R</span><b id="rr" class="accent">—</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">Ordres à placer <span class="sub" id="tpNote"></span></div>
+    <div class="otable">
+      <div class="orow thead"><div>NIVEAU</div><div>DÉCLENCHEMENT</div><div>LIMITE</div></div>
+      <div class="orow">
+        <div><span class="pill on-green">TP1</span></div>
+        <div><button class="copy" id="tpTrig">—</button></div>
+        <div><button class="copy dim" id="tpLim">—</button></div>
+      </div>
+      <div class="orow">
+        <div><span class="pill on-red">SL</span></div>
+        <div><button class="copy" id="slTrig">—</button></div>
+        <div><button class="copy dim" id="slLim">—</button></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">Touchez un prix pour le copier. La quantité est arrondie au pas inférieur : le risque réel reste sous le risque visé.</p>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var dir = 1;
+  var tpMode = "fill";
+
+  var $ = function(id){ return document.getElementById(id); };
+  var inputs = ["risk","entry","sl","tp","gap","fee","tick","step"].map($);
+
+  function num(el){
+    var v = parseFloat(String(el.value).replace(/\s/g,"").replace(",","."));
+    return isFinite(v) ? v : NaN;
+  }
+  function decimals(step){
+    if(!(step>0)) return 2;
+    var s = step.toString();
+    if(s.indexOf("e-")>-1) return parseInt(s.split("e-")[1],10);
+    return s.indexOf(".")>-1 ? s.split(".")[1].length : 0;
+  }
+  function roundTo(v, step, mode){
+    if(!(step>0)) return v;
+    var n = v/step;
+    n = mode==="down" ? Math.floor(n+1e-9) : mode==="up" ? Math.ceil(n-1e-9) : Math.round(n);
+    return n*step;
+  }
+  function fmt(v,d){
+    if(!isFinite(v)) return "—";
+    return v.toLocaleString("fr-FR",{minimumFractionDigits:d,maximumFractionDigits:d});
+  }
+  function ccy(){ return ($("ccy").value||"").trim().toUpperCase(); }
+  function money(v){
+    if(!isFinite(v)) return "—";
+    return v.toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2}) + " " + ccy();
+  }
+  function trimPct(v){ return fmt(v,2).replace(/,?0+$/,""); }
+
+  function setDir(d){
+    dir = d;
+    document.documentElement.setAttribute("data-dir", d===1?"long":"short");
+    $("bLong").setAttribute("aria-pressed", d===1);
+    $("bShort").setAttribute("aria-pressed", d===-1);
+    var p = $("dirPill");
+    p.textContent = d===1 ? "LONG" : "SHORT";
+    p.className = "pill " + (d===1 ? "on-green" : "on-red");
+    compute();
+  }
+  function setMode(m){
+    tpMode = m;
+    $("mFill").setAttribute("aria-pressed", m==="fill");
+    $("mMaker").setAttribute("aria-pressed", m==="maker");
+    compute();
+  }
+
+  function blank(){
+    ["notional","realRisk","slDist","rr","tpTrig","tpLim","slTrig","slLim"].forEach(function(id){
+      $(id).textContent = "—";
+    });
+    $("notionalCcy").textContent = "";
+    $("tpNote").textContent = "";
+  }
+
+  function compute(){
+    var riskAmount=num(inputs[0]), entry=num(inputs[1]), sl=num(inputs[2]), tp=num(inputs[3]),
+        gap=num(inputs[4]), fee=num(inputs[5]), tick=num(inputs[6]), step=num(inputs[7]);
+
+    var msg = $("msg");
+    var slBox = inputs[2].parentNode, tpBox = inputs[3].parentNode;
+    slBox.classList.remove("bad"); tpBox.classList.remove("bad");
+
+    if(!(riskAmount>0) || !(entry>0) || !(sl>0)){
+      msg.textContent = "";
+      blank(); return;
+    }
+
+    var slDist = (entry - sl) * dir;
+    if(slDist <= 0){
+      slBox.classList.add("bad");
+      msg.textContent = dir===1
+        ? "Pour un long, le stop doit être sous le prix d'entrée."
+        : "Pour un short, le stop doit être au-dessus du prix d'entrée.";
+      blank(); return;
+    }
+
+    if(!(gap>=0)) gap = 0;
+    if(!(fee>=0)) fee = 0;
+
+    var feeRate = fee/100;
+    var lossPerUnit = slDist + (entry + sl) * feeRate;
+    var size = roundTo(riskAmount / lossPerUnit, step, "down");
+
+    if(!(size > 0)){
+      msg.textContent = "Le risque est trop faible pour atteindre le pas de quantité minimal.";
+      blank(); return;
+    }
+
+    var dp = decimals(tick);
+    $("notional").textContent = fmt(size*entry, 2);
+    $("notionalCcy").textContent = ccy();
+    $("realRisk").textContent = money(size*lossPerUnit);
+    $("slDist").textContent = trimPct(slDist/entry*100) + " %";
+
+    var tpOk = isFinite(tp) && tp>0 && (tp-entry)*dir > 0;
+    $("rr").textContent = tpOk ? fmt((tp-entry)*dir/slDist, 2) : "—";
+    if(isFinite(tp) && tp>0 && !tpOk){
+      tpBox.classList.add("bad");
+      msg.textContent = dir===1
+        ? "Pour un long, le take profit doit être au-dessus du prix d'entrée."
+        : "Pour un short, le take profit doit être sous le prix d'entrée.";
+    } else {
+      msg.textContent = "";
+    }
+
+    var k = gap/100;
+    if(tpOk){
+      var trig, lim;
+      if(tpMode === "fill"){
+        trig = tp;
+        lim  = dir===1 ? tp*(1-k) : tp*(1+k);
+        $("tpNote").textContent = "limite à " + trimPct(gap) + " % " + (dir===1 ? "sous" : "au-dessus du") + " déclenchement";
+      } else {
+        trig = dir===1 ? tp*(1-k) : tp*(1+k);
+        lim  = tp;
+        $("tpNote").textContent = "déclenchement " + trimPct(gap) + " % avant le TP";
+      }
+      $("tpTrig").textContent = fmt(roundTo(trig, tick, "near"), dp);
+      $("tpLim").textContent  = fmt(roundTo(lim, tick, dir===1?"down":"up"), dp);
+    } else {
+      $("tpTrig").textContent = "—"; $("tpLim").textContent = "—"; $("tpNote").textContent = "";
+    }
+
+    $("slTrig").textContent = fmt(roundTo(sl, tick, "near"), dp);
+    $("slLim").textContent  = fmt(roundTo(dir===1 ? sl*(1-k) : sl*(1+k), tick, dir===1?"down":"up"), dp);
+  }
+
+  document.querySelectorAll(".copy").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var txt = btn.textContent.replace(/\s/g,"").replace(",",".");
+      if(txt === "—") return;
+      var done = function(){
+        btn.classList.add("done");
+        setTimeout(function(){ btn.classList.remove("done"); }, 700);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(txt).then(done, function(){});
+      } else {
+        var ta = document.createElement("textarea");
+        ta.value = txt; document.body.appendChild(ta); ta.select();
+        try{ document.execCommand("copy"); done(); }catch(e){}
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  // --- memorisation des reglages (pas des prix) ---
+  var KEY = "position.v1";
+  var saved = ["risk","ccy","gap","fee","tick","step"];
+
+  function save(){
+    try{
+      var o = {dir:dir, mode:tpMode};
+      saved.forEach(function(id){ o[id] = $(id).value; });
+      localStorage.setItem(KEY, JSON.stringify(o));
+    }catch(e){}
+  }
+  function restore(){
+    try{
+      var o = JSON.parse(localStorage.getItem(KEY) || "null");
+      if(!o) return;
+      saved.forEach(function(id){ if(typeof o[id] === "string") $(id).value = o[id]; });
+      if(o.mode === "maker") setMode("maker");
+      if(o.dir === -1) setDir(-1);
+    }catch(e){}
+  }
+
+  inputs.forEach(function(el){ el.addEventListener("input", compute); });
+  [].concat(inputs, [$("ccy")]).forEach(function(el){ el.addEventListener("change", save); });
+  $("ccy").addEventListener("input", compute);
+  $("bLong").addEventListener("click", function(){ setDir(1); save(); });
+  $("bShort").addEventListener("click", function(){ setDir(-1); save(); });
+  $("mFill").addEventListener("click", function(){ setMode("fill"); save(); });
+  $("mMaker").addEventListener("click", function(){ setMode("maker"); save(); });
+  window.addEventListener("pagehide", save);
+
+  restore();
+  compute();
+
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+})();
+</script></body></html>

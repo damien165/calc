@@ -1,6 +1,6 @@
 // Cache "app shell" : la page marche hors ligne une fois ouverte une premiere fois.
 // Change CACHE a chaque mise a jour du fichier index.html.
-var CACHE = "position-v3";
+var CACHE = "position-v4";
 var FILES = ["./", "./index.html", "./manifest.json", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function(e){

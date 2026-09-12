@@ -250,11 +250,11 @@
             </div>
             <div class="field">
               <label for="tick">Pas de prix</label>
-              <div class="box"><input id="tick" inputmode="decimal" value="0.01"></div>
+              <div class="box"><input id="tick" inputmode="decimal" placeholder="auto"></div>
             </div>
             <div class="field">
               <label for="step">Pas de quantité</label>
-              <div class="box"><input id="step" inputmode="decimal" value="0.01"></div>
+              <div class="box"><input id="step" inputmode="decimal" placeholder="auto"></div>
             </div>
           </div>
           <div class="modes" role="group" aria-label="Placement de l'ordre take profit">
@@ -321,6 +321,12 @@
     var v = parseFloat(String(el.value).replace(/\s/g,"").replace(",","."));
     return isFinite(v) ? v : NaN;
   }
+  // nombre de decimales reellement tapees dans un champ
+  function decOf(el){
+    var s=String(el.value).replace(",",".").trim();
+    var i=s.indexOf(".");
+    return i<0 ? 0 : s.length-i-1;
+  }
   function decimals(step){
     if(!(step>0)) return 2;
     var s = step.toString();
@@ -373,7 +379,17 @@
   function compute(){
     var riskAmount=num(inputs[0]),
         sl=num(inputs[4]), tp=num(inputs[5]),
-        gap=num(inputs[6]), fee=num(inputs[7]), tick=num(inputs[8]), step=num(inputs[9]);
+        gap=num(inputs[6]), fee=num(inputs[7]);
+
+    // Pas de prix : saisi, sinon deduit de la precision des prix tapes.
+    // Sans cela un pas trop grossier ecrase les prix des actifs a faible cotation.
+    var tick=num(inputs[8]), step=num(inputs[9]);
+    if(!(tick>0)){
+      var dmax=2;
+      [1,2,3,4,5].forEach(function(i){ dmax=Math.max(dmax, decOf(inputs[i])); });
+      tick = Math.pow(10, -Math.min(dmax,8));
+    }
+    if(!(step>0)) step = 0;   // pas de quantite non renseigne : aucun arrondi
 
     // Entrees de taille identique : le prix retenu est leur moyenne arithmetique.
     var fills = [num(inputs[1]), num(inputs[2]), num(inputs[3])].filter(function(v){ return v>0; });
@@ -413,6 +429,12 @@
     // pas le declenchement. La taille est calculee sur ce pire prix.
     var slLimPrice = roundTo(dir===1 ? sl*(1-k) : sl*(1+k), tick, dir===1 ? "down" : "up");
     var worstDist = (entry - slLimPrice) * dir;
+
+    // un pas de prix trop grossier ecrase les prix : mieux vaut refuser que repondre a cote
+    if(!(slLimPrice>0) || tick > slDist){
+      msg.textContent = "Pas de prix trop grand pour ces cours : videz le champ pour le réglage automatique.";
+      blank(); return;
+    }
     var lossPerUnit = worstDist + (entry + slLimPrice) * feeRate;
     var size = roundTo(riskAmount / lossPerUnit, step, "down");
 

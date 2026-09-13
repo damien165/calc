@@ -450,7 +450,11 @@
       ? nFills + " ordres de <b>" + fmt(size*entry/nFills, 2) + " " + ccy() + "</b>"
       : "";
     $("realRisk").textContent = money(size*lossPerUnit);
-    $("slDist").textContent = trimPct(slDist/entry*100) + " %";
+    // deux distances : jusqu'au declenchement, puis jusqu'a la limite qui dimensionne
+    var pTrig = slDist/entry*100, pWorst = worstDist/entry*100;
+    $("slDist").textContent = (Math.abs(pWorst-pTrig) < 0.005)
+      ? trimPct(pTrig) + " %"
+      : trimPct(pTrig) + " → " + trimPct(pWorst) + " %";
 
     var tpOk = isFinite(tp) && tp>0 && (tp-entry)*dir > 0;
     var netGain = tpOk ? (tp-entry)*dir - (entry+tp)*feeRate : NaN;

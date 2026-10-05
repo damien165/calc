@@ -41,7 +41,7 @@
   }
   .wrap{max-width:560px;margin:0 auto;padding:0 14px;}
 
-  .pill,.col span,.orow.thead,label,summary,.card-head{
+  .pill,.col span,label,summary,.card-head{
     -webkit-user-select:none;user-select:none;
   }
   .topbar{
@@ -157,29 +157,6 @@
   .col b.accent{color:var(--accent);}
 
   /* orders */
-  .otable{width:100%;}
-  .orow{
-    display:grid;grid-template-columns:56px 1fr 1fr;align-items:center;gap:10px;
-    padding:6px 14px;min-height:52px;
-  }
-  .orow.thead{
-    min-height:0;padding-top:9px;padding-bottom:9px;
-    font-size:10.5px;letter-spacing:.06em;color:var(--muted);
-    border-bottom:1px solid var(--line-soft);
-  }
-  .orow+.orow{border-top:1px solid var(--line-soft);}
-  .orow.thead+.orow{border-top:0;}
-  .copy{
-    appearance:none;border:0;background:transparent;text-align:left;
-    font:inherit;font-weight:600;font-size:15px;font-variant-numeric:tabular-nums;
-    color:var(--ink);padding:11px 8px;margin:0 -8px;border-radius:5px;cursor:pointer;
-    -webkit-tap-highlight-color:transparent;
-    transition:background .12s,color .12s;
-  }
-  .copy:hover{background:var(--head);}
-  .copy:focus-visible{outline:2px solid var(--amber);outline-offset:0;}
-  .copy.done{color:var(--amber);}
-  .copy.dim{color:var(--ink-dim);font-weight:500;}
 
   .msg{
     margin:0 0 12px;padding:10px 13px;border-radius:6px;
@@ -241,8 +218,8 @@
         <div class="adv">
           <div class="grid">
             <div class="field">
-              <label for="gap">Écart de déclenchement</label>
-              <div class="box"><input id="gap" inputmode="decimal" value="0.5"><span class="unit">%</span></div>
+              <label for="gap">Marge de glissement</label>
+              <div class="box"><input id="gap" inputmode="decimal" placeholder="0"><span class="unit">%</span></div>
             </div>
             <div class="field">
               <label for="fee">Frais par sens</label>
@@ -256,10 +233,6 @@
               <label for="step">Pas de quantité</label>
               <div class="box"><input id="step" inputmode="decimal" placeholder="auto"></div>
             </div>
-          </div>
-          <div class="modes" role="group" aria-label="Placement de l'ordre take profit">
-            <button id="mFill" aria-pressed="true"><b>Exécution sûre</b>Limite posée au-delà du TP</button>
-            <button id="mMaker" aria-pressed="false"><b>Frais maker</b>Déclenchement avant le TP</button>
           </div>
         </div>
       </details>
@@ -286,24 +259,8 @@
     </div>
   </section>
 
-  <section class="card">
-    <div class="card-head">Ordres à placer <span class="sub" id="tpNote"></span></div>
-    <div class="otable">
-      <div class="orow thead"><div>NIVEAU</div><div>DÉCLENCHEMENT</div><div>LIMITE</div></div>
-      <div class="orow">
-        <div><span class="pill on-green">TP1</span></div>
-        <div><button class="copy" id="tpTrig">—</button></div>
-        <div><button class="copy dim" id="tpLim">—</button></div>
-      </div>
-      <div class="orow">
-        <div><span class="pill on-red">SL</span></div>
-        <div><button class="copy" id="slTrig">—</button></div>
-        <div><button class="copy dim" id="slLim">—</button></div>
-      </div>
-    </div>
-  </section>
 
-  <p class="foot">Touchez un prix pour le copier. La quantité est arrondie au pas inférieur : le risque réel reste sous le risque visé.</p>
+  <p class="foot">La marge de glissement, dans les réglages, élargit la distance de stop retenue pour le calcul. À 0, la taille se base sur le stop lui-même.</p>
 
 </div>
 
@@ -312,7 +269,6 @@
   "use strict";
 
   var dir = 1;
-  var tpMode = "fill";
 
   var $ = function(id){ return document.getElementById(id); };
   var inputs = ["risk","e1","e2","e3","sl","tp","gap","fee","tick","step"].map($);
@@ -360,20 +316,13 @@
     p.className = "pill " + (d===1 ? "on-green" : "on-red");
     compute();
   }
-  function setMode(m){
-    tpMode = m;
-    $("mFill").setAttribute("aria-pressed", m==="fill");
-    $("mMaker").setAttribute("aria-pressed", m==="maker");
-    compute();
-  }
 
   function blank(){
-    ["notional","realRisk","slDist","rr","tpTrig","tpLim","slTrig","slLim"].forEach(function(id){
+    ["notional","realRisk","slDist","rr"].forEach(function(id){
       $(id).textContent = "—";
     });
     $("notionalCcy").textContent = "";
     $("perLeg").textContent = "";
-    $("tpNote").textContent = "";
   }
 
   function compute(){
@@ -475,45 +424,8 @@
         : "Une des entrées est au-dessus du stop.";
     }
 
-    if(tpOk){
-      var trig, lim;
-      if(tpMode === "fill"){
-        trig = tp;
-        lim  = dir===1 ? tp*(1-k) : tp*(1+k);
-        $("tpNote").textContent = "limite à " + trimPct(gap) + " % " + (dir===1 ? "sous" : "au-dessus du") + " déclenchement";
-      } else {
-        trig = dir===1 ? tp*(1-k) : tp*(1+k);
-        lim  = tp;
-        $("tpNote").textContent = "déclenchement " + trimPct(gap) + " % avant le TP";
-      }
-      $("tpTrig").textContent = fmt(roundTo(trig, tick, "near"), dp);
-      $("tpLim").textContent  = fmt(roundTo(lim, tick, dir===1?"down":"up"), dp);
-    } else {
-      $("tpTrig").textContent = "—"; $("tpLim").textContent = "—"; $("tpNote").textContent = "";
-    }
-
-    $("slTrig").textContent = fmt(roundTo(sl, tick, "near"), dp);
-    $("slLim").textContent  = fmt(slLimPrice, dp);
   }
 
-  document.querySelectorAll(".copy").forEach(function(btn){
-    btn.addEventListener("click", function(){
-      var txt = btn.textContent.replace(/\s/g,"").replace(",",".");
-      if(txt === "—") return;
-      var done = function(){
-        btn.classList.add("done");
-        setTimeout(function(){ btn.classList.remove("done"); }, 700);
-      };
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(txt).then(done, function(){});
-      } else {
-        var ta = document.createElement("textarea");
-        ta.value = txt; document.body.appendChild(ta); ta.select();
-        try{ document.execCommand("copy"); done(); }catch(e){}
-        document.body.removeChild(ta);
-      }
-    });
-  });
 
   // --- memorisation des reglages (pas des prix) ---
   var KEY = "position.v1";
@@ -521,7 +433,7 @@
 
   function save(){
     try{
-      var o = {dir:dir, mode:tpMode};
+      var o = {dir:dir};
       saved.forEach(function(id){ o[id] = $(id).value; });
       localStorage.setItem(KEY, JSON.stringify(o));
     }catch(e){}
@@ -531,7 +443,6 @@
       var o = JSON.parse(localStorage.getItem(KEY) || "null");
       if(!o) return;
       saved.forEach(function(id){ if(typeof o[id] === "string") $(id).value = o[id]; });
-      if(o.mode === "maker") setMode("maker");
       if(o.dir === -1) setDir(-1);
     }catch(e){}
   }
@@ -541,8 +452,6 @@
   $("ccy").addEventListener("input", compute);
   $("bLong").addEventListener("click", function(){ setDir(1); save(); });
   $("bShort").addEventListener("click", function(){ setDir(-1); save(); });
-  $("mFill").addEventListener("click", function(){ setMode("fill"); save(); });
-  $("mMaker").addEventListener("click", function(){ setMode("maker"); save(); });
   window.addEventListener("pagehide", save);
 
   restore();

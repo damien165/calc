@@ -149,12 +149,13 @@
   }
   .notional em{font-style:normal;font-size:.5em;font-weight:500;color:var(--muted);margin-left:8px;letter-spacing:0;}
   .cols{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+    display:grid;grid-template-columns:1fr 1fr 1.35fr .75fr;gap:10px;
     margin-top:16px;padding-top:13px;border-top:1px solid var(--line-soft);
   }
   .col span{display:block;font-size:10.5px;letter-spacing:.06em;color:var(--muted);margin-bottom:4px;}
-  .col b{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink-dim);}
+  .col b{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink-dim);white-space:nowrap;}
   .col b.accent{color:var(--accent);}
+  .col b.win{color:var(--green);}
 
   /* orders */
 
@@ -245,7 +246,7 @@
   <section class="card">
     <div class="card-head">
       Valeur de l'ordre
-      <span class="pill" id="dirPill">LONG</span>
+      <span class="pill on-green" id="dirPill">LONG</span>
       <span class="sub" id="levNote"></span>
     </div>
     <div class="card-body" aria-live="polite">
@@ -253,6 +254,7 @@
       <div class="caption" id="perLeg"></div>
       <div class="cols">
         <div class="col"><span>RISQUE MAX</span><b id="realRisk">—</b></div>
+        <div class="col"><span>GAIN TP</span><b id="gain" class="win">—</b></div>
         <div class="col"><span>DIST. SL</span><b id="slDist">—</b></div>
         <div class="col"><span>R:R</span><b id="rr" class="accent">—</b></div>
       </div>
@@ -318,7 +320,7 @@
   }
 
   function blank(){
-    ["notional","realRisk","slDist","rr"].forEach(function(id){
+    ["notional","realRisk","gain","slDist","rr"].forEach(function(id){
       $(id).textContent = "—";
     });
     $("notionalCcy").textContent = "";
@@ -398,7 +400,7 @@
     $("perLeg").innerHTML = nFills>1
       ? nFills + " ordres de <b>" + fmt(size*entry/nFills, 2) + " " + ccy() + "</b>"
       : "";
-    $("realRisk").textContent = money(size*lossPerUnit);
+    $("realRisk").textContent = fmt(size*lossPerUnit, 2);
     // deux distances : jusqu'au declenchement, puis jusqu'a la limite qui dimensionne
     var pTrig = slDist/entry*100, pWorst = worstDist/entry*100;
     $("slDist").textContent = (Math.abs(pWorst-pTrig) < 0.005)
@@ -406,7 +408,9 @@
       : trimPct(pTrig) + " → " + trimPct(pWorst) + " %";
 
     var tpOk = isFinite(tp) && tp>0 && (tp-entry)*dir > 0;
+    // gain net de frais au take profit, pour toute la position
     var netGain = tpOk ? (tp-entry)*dir - (entry+tp)*feeRate : NaN;
+    $("gain").textContent = tpOk ? fmt(size*netGain, 2) : "—";
     $("rr").textContent = tpOk ? fmt(netGain/lossPerUnit, 2) : "—";
     if(isFinite(tp) && tp>0 && !tpOk){
       tpBox.classList.add("bad");
